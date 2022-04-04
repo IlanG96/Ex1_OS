@@ -5,6 +5,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <signal.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
 
 #define	MAX_SIZE_CMD	256
 #define	MAX_SIZE_ARG	16
@@ -12,11 +14,13 @@
 char cmd[MAX_SIZE_CMD];				// string holder for the command
 char *argv[MAX_SIZE_ARG];			// an array for command and arguments
 //pid_t pid;										// global variable for the child process ID
-char i;												// global for loop counter
+char i;	
+int const ZERO = 0 ;											// global for loop counter
 
-void get_cmd();								// get command string from the user
+void get_cmd();								// get command string from thlle user
 void convert_cmd();						// convert the command string to the required format by execvp()
 void Start_shell();								// to start the shell
+int open_localhost();
 
 int StartsWith(const char *a, const char *b)
 {
@@ -32,10 +36,24 @@ int main(){
 	return 0;
 }
 
+void echo(int sock , char* command, int command_size , int flag ){
+			
+			if( flag == 0)
+            printf("%s\n",cmd);
+			else
+			send (sock,command,command_size,ZERO);
+        
+}
+
 void Start_shell(){
-	while(1){
+	int flag = 0;
+	int conn=0;
+	while (1)
+	{
+	
 		// get the command from user
 		get_cmd();
+		//printf("%s\n", cmd);
 		// bypass empty commands
 		// if(!strcmp("", cmd)) continue;
 
@@ -48,8 +66,19 @@ void Start_shell(){
         }
         if(StartsWith(cmd,"ECHO ")){
             strncpy(cmd, cmd + 5, sizeof(cmd) - 5);
-            printf("%s\n",cmd);
-        }
+			echo(conn,cmd,strlen(cmd),flag);
+		}
+		if(!strcmp(cmd, "TCP")){
+			//printf("here!");
+			int conn = open_localhost();
+			if (conn == 1){
+				flag = 1;
+			}
+		}
+			if(!strcmp(cmd, "LOCAL")){
+			flag=0;
+			close(conn);
+		}
 
 
 		// fit the command into *argv[]
@@ -73,14 +102,36 @@ void Start_shell(){
 		// }
 	}
 }
+ 
+int open_localhost(){
+	int sock=0;
+	struct sockaddr_in server;
+	if ((sock = socket(AF_INET, SOCK_STREAM, ZERO)) < ZERO )
+	{
+			printf("error creating socket");
+			return -1;
+	}
+	
+	server.sin_family = AF_INET;
+	server.sin_port = 8080;
+	server.sin_addr.s_addr = inet_addr("127.0.0.1");
+	if(connect(sock,( struct sockaddr * )&server, sizeof(server) < 0 )){
+		printf( " error connection ");
+		return -1;
+	}
+return 1;
+}
+	
 
 void get_cmd(){
 	// get command from user
 	printf("Enter your commend>\t");
-	fgets(cmd, MAX_SIZE_CMD, stdin);
+	//fgets(cmd, MAX_SIZE_CMD, stdin);
+	scanf("%s",cmd);
 	// remove trailing newline
-	if ((strlen(cmd) > 0) && (cmd[strlen (cmd) - 1] == '\n'))
-        	cmd[strlen (cmd) - 1] = '\0';
+	// if ((strlen(cmd) > 0) && (cmd[strlen (cmd) - 1] == '\n'))
+    //     	cmd[strlen (cmd) - 1] = '\0';
+
 	//printf("%s\n", cmd);
 }
 
