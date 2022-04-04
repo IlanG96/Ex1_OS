@@ -36,14 +36,14 @@ int main(){
 	return 0;
 }
 
-void echo(int sock , char* command, int command_size , int flag ){
+// void echo(int sock , char* command, int command_size , int flag ){
 			
-			if( flag == 0)
-            printf("%s\n",cmd);
-			else
-			send (sock,command,command_size,ZERO);
+// 			if( flag == 0)
+//             printf("%s\n",cmd);
+// 			else
+// 			send (sock,command,command_size,ZERO);
         
-}
+// }
 
 void Start_shell(){
 	int flag = 0;
@@ -59,21 +59,27 @@ void Start_shell(){
 
 		// check for "exit" command
         if(!strcmp("EXIT", cmd)) break;
-
+		//printf("%s\n",cmd);
         if(!strcmp("getcwd", cmd)){
             getcwd(cmd,MAX_SIZE_CMD);
             printf("%s\n",cmd);
         }
-        if(StartsWith(cmd,"ECHO ")){
+        if(StartsWith(cmd,"ECHO")){
             strncpy(cmd, cmd + 5, sizeof(cmd) - 5);
-			echo(conn,cmd,strlen(cmd),flag);
-		}
-		if(!strcmp(cmd, "TCP")){
-			//printf("here!");
-			int conn = open_localhost();
-			if (conn == 1){
-				flag = 1;
+			if(flag == 0)
+            printf("%s\n",cmd);
+			else{
+			printf("here is the problem");
+			send(conn , cmd, strlen(cmd),0);
 			}
+		}
+		//printf("%s\n",cmd);
+		if(strncmp(cmd, "TCP", 3) == 0){
+			printf("here!\n");
+			open_localhost();
+			// if (conn == 1){
+			flag = 1;
+			//}
 		}
 			if(!strcmp(cmd, "LOCAL")){
 			flag=0;
@@ -128,14 +134,15 @@ int open_localhost(){
 
     connect(sock, (struct sockaddr *)&addr, sizeof(addr));
     printf("Connected to the server.\n");
+	
 }
 	
 
 void get_cmd(){
 	// get command from user
 	printf("Enter your commend>\t");
-	//fgets(cmd, MAX_SIZE_CMD, stdin);
-	scanf("%s",cmd);
+	fgets(cmd, MAX_SIZE_CMD, stdin);
+	//scanf("%s",cmd);
 	// remove trailing newline
 	// if ((strlen(cmd) > 0) && (cmd[strlen (cmd) - 1] == '\n'))
     //     	cmd[strlen (cmd) - 1] = '\0';
