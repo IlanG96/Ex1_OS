@@ -10,6 +10,7 @@
 
 #define	MAX_SIZE_CMD	256
 #define	MAX_SIZE_ARG	16
+#define PORT 5566
 
 char cmd[MAX_SIZE_CMD];				// string holder for the command
 char *argv[MAX_SIZE_ARG];			// an array for command and arguments
@@ -67,23 +68,20 @@ void Start_shell(){
         if(StartsWith(cmd,"ECHO")){
             strncpy(cmd, cmd + 5, sizeof(cmd) - 5);
 			if(flag == 0)
-            printf("%s\n",cmd);
+            printf("%s",cmd);
 			else{
-			printf("here is the problem");
 			send(conn , cmd, strlen(cmd),0);
 			}
 		}
 		//printf("%s\n",cmd);
 		if(strncmp(cmd, "TCP", 3) == 0){
-			printf("here!\n");
-			open_localhost();
-			// if (conn == 1){
+			conn=open_localhost();
 			flag = 1;
-			//}
 		}
-			if(!strcmp(cmd, "LOCAL")){
+		if(StartsWith(cmd,"LOCAL")){
 			flag=0;
-			close(conn);
+			if(conn!=0){
+			close(conn);}
 		}
 
 
@@ -111,30 +109,27 @@ void Start_shell(){
  
 int open_localhost(){
     char *ip = "127.0.0.1";
-    int port = 5566;
 
+  struct sockaddr_in addr;
+  socklen_t addr_size;
+  char buffer[1024];
+  int n;
 
-    struct sockaddr_in addr;
-    socklen_t addr_size;
-    char buffer[1024];
-    int n;
+  int Client_socket = socket(AF_INET, SOCK_STREAM, 0);
+  if (Client_socket < 0){
+    perror("[-]Socket error");
+    exit(1);
+  }
+  printf("[+]TCP server socket created.\n");
 
-    int sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock < 0)
-    {
-        perror("[-]Socket error");
-        exit(1);
-    }
-    printf("[+]TCP server socket created.\n");
+  memset(&addr, '\0', sizeof(addr));
+  addr.sin_family = AF_INET;
+  addr.sin_port = PORT;
+  addr.sin_addr.s_addr = inet_addr(ip);
 
-    memset(&addr, '\0', sizeof(addr));
-    addr.sin_family = AF_INET;
-    addr.sin_port = port;
-    addr.sin_addr.s_addr = inet_addr(ip);
-
-    connect(sock, (struct sockaddr *)&addr, sizeof(addr));
-    printf("Connected to the server.\n");
-	
+  connect(Client_socket, (struct sockaddr*)&addr, sizeof(addr));
+  printf("Connected to the server.\n");
+  return Client_socket;
 }
 	
 
@@ -171,4 +166,3 @@ void convert_cmd(){
 	}
 	//printf("%d\n", i);
 }
-
