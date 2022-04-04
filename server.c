@@ -4,11 +4,11 @@
 #include <stdlib.h>
 #include <netinet/in.h>
 #include <string.h>
-#define Port 8080
+#include<arpa/inet.h>
+#define Port 5566
 
-int main(int argc, char const *argv[])
-{
-    printf("here!");
+void Start_server(){
+  printf("here!");
     printf("here!");
     printf("here!");
     printf("here!");
@@ -31,7 +31,7 @@ int main(int argc, char const *argv[])
         exit(1);
     }
     printf("ILAN AMAR LERSHOM PO");
-    server_address.sin_addr.s_addr=htons(INADDR_ANY);
+    server_address.sin_addr.s_addr=inet_addr("127.0.0.1");
     server_address.sin_family=AF_INET;
     server_address.sin_port=htons(Port);    
     if (bind(server_socket,(struct sockaddr*)&server_address,sizeof(server_address))<0)
@@ -70,8 +70,13 @@ int main(int argc, char const *argv[])
                 
         
     }
-    close(client_socket);
+    //close(client_socket);
 
     
+}
+
+int main(int argc, char const *argv[])
+{
+  Start_server();
     return 0;
 }
