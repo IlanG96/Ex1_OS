@@ -7,19 +7,16 @@
 #include <signal.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <dirent.h>
 
 #define	MAX_SIZE_CMD	256
 #define	MAX_SIZE_ARG	16
 #define PORT 5566
 
 char cmd[MAX_SIZE_CMD];				// string holder for the command
-char *argv[MAX_SIZE_ARG];			// an array for command and arguments
-//pid_t pid;										// global variable for the child process ID
-char i;	
 int const ZERO = 0 ;											// global for loop counter
 
 void get_cmd();								// get command string from thlle user
-void convert_cmd();						// convert the command string to the required format by execvp()
 void Start_shell();								// to start the shell
 int open_localhost();
 
@@ -29,22 +26,76 @@ int StartsWith(const char *a, const char *b)
    return 0;
 }
 
-int main(){
 
-	// start the shell
-	Start_shell();
-
-	return 0;
+/**
+ * @brief Return all the file in the current directory
+ * 
+ */
+void dir_files(){
+	DIR *dir_explorer;
+	struct dirent *curr_dir;
+	dir_explorer = opendir(".");	
+    if (dir_explorer!=NULL)
+	{
+		curr_dir= readdir(dir_explorer);
+		while (curr_dir!= NULL)
+		{
+			printf("%s \n",curr_dir->d_name);
+			curr_dir= readdir(dir_explorer);
+		}
+		
+	}
+	else{
+		printf("ERR: directory opening failed");
+		exit(1);
+	}
+	closedir(dir_explorer);
+	return;    
 }
-
-// void echo(int sock , char* command, int command_size , int flag ){
-			
-// 			if( flag == 0)
-//             printf("%s\n",cmd);
-// 			else
-// 			send (sock,command,command_size,ZERO);
-        
-// }
+	void Copy_func(char *cmd,int cmd_len){
+		char src[MAX_SIZE_CMD];
+		char dest[MAX_SIZE_CMD];
+		int file_1_finished=0;
+  		memset(&src, '\0', sizeof(src));
+		memset(&dest, '\0', sizeof(dest));
+		int index1=0;
+		int index2=0;
+		for (int i = 0; i < cmd_len; i++)
+		{
+			if (file_1_finished==0)
+			{
+				if (cmd[i]!=' ')
+				{
+					src[index1++]=cmd[i];
+				}
+				else{
+					file_1_finished=1;
+				}
+				
+			}
+			else{
+				dest[index2++]=cmd[i];
+			}
+		}
+    	if (src == NULL ){
+        	printf("Error: invalid src name\n");
+        	return;
+    	}
+		if (dest == NULL)
+		{
+        	printf("Error: invalid dest name\n");
+        	return;
+		}
+		char char_pointer;
+    	FILE *fSrc = fopen(src, "r");
+    	FILE *fDst = fopen(dest, "a");
+    	while ((char_pointer = fgetc(fSrc)) != EOF) {
+        	fputc(char_pointer, fDst);
+    	}
+    	printf("Copy finished\n");
+    	fclose(fSrc);
+    	fclose(fDst);				
+	}
 
 void Start_shell(){
 	int flag = 0;
@@ -59,12 +110,8 @@ void Start_shell(){
 		// if(!strcmp("", cmd)) continue;
 
 		// check for "exit" command
-        if(!strcmp("EXIT", cmd)) break;
+        if(strncmp(cmd, "EXIT",4)==0) break;
 		//printf("%s\n",cmd);
-        if(!strcmp("getcwd", cmd)){
-            getcwd(cmd,MAX_SIZE_CMD);
-            printf("%s\n",cmd);
-        }
         if(StartsWith(cmd,"ECHO")){
             strncpy(cmd, cmd + 5, sizeof(cmd) - 5);
 			if(flag == 0)
@@ -83,27 +130,46 @@ void Start_shell(){
 			if(conn!=0){
 			close(conn);}
 		}
+		if (StartsWith(cmd,"DIR"))
+		{
+			dir_files();
+		}
+		if (StartsWith(cmd,"CD"))
+		{
+			/**
+			 * @brief chdir change the current directory the shell is in.
+			 * which mean that chdir use the kernal to naviagte to the wished directory so this is a system call.
+			 */
+			strncpy(cmd, cmd + 3, sizeof(cmd) - 3);
+			cmd[strlen(cmd)-1]='\0'; //remove the \n in the end of the file
+			int x=chdir(cmd);
+			if(x==-1)
+				printf("Cannt open the dir\n");
+		}
+		if(StartsWith(cmd,"COPY")){
+			strncpy(cmd, cmd + 5, sizeof(cmd) - 5);
+			Copy_func(cmd,strlen(cmd));
+		}
+		else{
+			/**
+			 * @brief Construct a new system object.
+			 * System is a library function.
+			 */
+			//system(cmd);
+		
+            int pid = fork();
+            if(pid<0){
+                printf("Failed to fork");
+                break;
+            }
+            if(pid==0){
+                execl("/bin/sh", "sh", "-c", cmd, (char *) NULL);
+                break;
+            }else{
+                wait(NULL);
+            }
 
-
-		// fit the command into *argv[]
-		//convert_cmd();
-
-
-		// fork and execute the command
-		// pid = fork();
-		// if(-1 == pid){
-		// 	printf("failed to create a child\n");
-		// }
-		// else if(0 == pid){
-		// 	// printf("hello from child\n");
-		// 	// execute a command
-		// 	execvp(argv[0], argv);
-		// }
-		// else{
-		// 	// printf("hello from parent\n");
-		// 	// wait for the command to finish if "&" is not present
-		// 	if(NULL == argv[i]) waitpid(pid, NULL, 0);
-		// }
+		}
 	}
 }
  
@@ -135,7 +201,9 @@ int open_localhost(){
 
 void get_cmd(){
 	// get command from user
-	printf("Enter your commend>\t");
+	printf("Enter your commend\n");
+	getcwd(cmd,MAX_SIZE_CMD);
+    printf("%s>",cmd);
 	fgets(cmd, MAX_SIZE_CMD, stdin);
 	//scanf("%s",cmd);
 	// remove trailing newline
@@ -145,24 +213,10 @@ void get_cmd(){
 	//printf("%s\n", cmd);
 }
 
-void convert_cmd(){
-	// split string into argv
-	char *ptr;
-	i = 0;
-	ptr = strtok(cmd, " ");
-	while(ptr != NULL){
-		//printf("%s\n", ptr);
-		argv[i] = ptr;
-		i++;
-		ptr = strtok(NULL, " ");
-	}
+int main(){
 
-	// check for "&"
-	if(!strcmp("&", argv[i-1])){
-	argv[i-1] = NULL;
-	argv[i] = "&";
-	}else{
-	argv[i] = NULL;
-	}
-	//printf("%d\n", i);
+	// start the shell
+	Start_shell();
+
+	return 0;
 }
