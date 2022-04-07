@@ -10,16 +10,18 @@
 #include <dirent.h>
 
 #define	MAX_SIZE_CMD	256
-#define	MAX_SIZE_ARG	16
-#define PORT 5566
+#define PORT 5514 // port for the TCP connection
 
 char cmd[MAX_SIZE_CMD];				// string holder for the command
-int const ZERO = 0 ;											// global for loop counter
-
-void get_cmd();								// get command string from thlle user
+void get_cmd();								// get command string from the user
 void Start_shell();								// to start the shell
 int open_localhost();
 
+/**
+ * @brief A function to check if param a start with param b 
+ * 
+ * @return 1 if param a start with param b 
+ */
 int StartsWith(const char *a, const char *b)
 {
    if(strncmp(a, b, strlen(b)) == 0) return 1;
@@ -52,6 +54,13 @@ void dir_files(){
 	closedir(dir_explorer);
 	return;    
 }
+
+/**
+ * @brief create a copy of the file name entered in the cmd.
+ * 
+ * @param cmd the file name
+ * @param cmd_len file name length
+ */
 	void Copy_func(char *cmd,int cmd_len){
 		char src[MAX_SIZE_CMD];
 		char dest[MAX_SIZE_CMD];
@@ -97,22 +106,24 @@ void dir_files(){
     	fclose(fDst);				
 	}
 
+/**
+ * @brief Main Function start the shell program
+ * 
+ */
 void Start_shell(){
-	int flag = 0;
+	int flag = 0;//	For the TCP connection
 	int conn=0;
 	while (1)
 	{
 	
 		// get the command from user
 		get_cmd();
-		//printf("%s\n", cmd);
-		// bypass empty commands
-		// if(!strcmp("", cmd)) continue;
-
 		// check for "exit" command
-        if(strncmp(cmd, "EXIT",4)==0) break;
-		//printf("%s\n",cmd);
-        if(StartsWith(cmd,"ECHO")){
+        if(strncmp(cmd, "EXIT",4)==0){
+			 printf("Bye!\n");
+			 break;
+			 }
+        else if(StartsWith(cmd,"ECHO")){
             strncpy(cmd, cmd + 5, sizeof(cmd) - 5);
 			if(flag == 0)
             printf("%s",cmd);
@@ -120,21 +131,20 @@ void Start_shell(){
 			send(conn , cmd, strlen(cmd),0);
 			}
 		}
-		//printf("%s\n",cmd);
-		if(strncmp(cmd, "TCP", 3) == 0){
+		else if(strncmp(cmd, "TCP", 3) == 0){
 			conn=open_localhost();
 			flag = 1;
 		}
-		if(StartsWith(cmd,"LOCAL")){
+		else if(StartsWith(cmd,"LOCAL")){
 			flag=0;
 			if(conn!=0){
 			close(conn);}
 		}
-		if (StartsWith(cmd,"DIR"))
+		else if (StartsWith(cmd,"DIR"))
 		{
 			dir_files();
 		}
-		if (StartsWith(cmd,"CD"))
+		else if (StartsWith(cmd,"CD"))
 		{
 			/**
 			 * @brief chdir change the current directory the shell is in.
@@ -146,10 +156,28 @@ void Start_shell(){
 			if(x==-1)
 				printf("Cannt open the dir\n");
 		}
-		if(StartsWith(cmd,"COPY")){
+		else if(StartsWith(cmd,"COPY")){
 			strncpy(cmd, cmd + 5, sizeof(cmd) - 5);
 			Copy_func(cmd,strlen(cmd));
 		}
+		else if (StartsWith(cmd,"DELETE"))
+		{
+			/**
+			 * @brief The unlink is a system call  
+			 * 
+			 */
+			strncpy(cmd, cmd + 7, sizeof(cmd) - 7);
+			cmd[strlen(cmd)-1]='\0';
+			if (unlink(cmd))
+			{
+				printf("Failed to delete the file\n");
+				printf("%s\n",cmd);
+			}
+			else
+				printf("File deleted\n");
+			
+		}
+		
 		else{
 			/**
 			 * @brief Construct a new system object.
@@ -177,16 +205,13 @@ int open_localhost(){
     char *ip = "127.0.0.1";
 
   struct sockaddr_in addr;
-  socklen_t addr_size;
-  char buffer[1024];
-  int n;
 
   int Client_socket = socket(AF_INET, SOCK_STREAM, 0);
   if (Client_socket < 0){
-    perror("[-]Socket error");
+    perror("ERR:Socket Creation");
     exit(1);
   }
-  printf("[+]TCP server socket created.\n");
+  printf("Socket created.\n");
 
   memset(&addr, '\0', sizeof(addr));
   addr.sin_family = AF_INET;
@@ -205,12 +230,6 @@ void get_cmd(){
 	getcwd(cmd,MAX_SIZE_CMD);
     printf("%s>",cmd);
 	fgets(cmd, MAX_SIZE_CMD, stdin);
-	//scanf("%s",cmd);
-	// remove trailing newline
-	// if ((strlen(cmd) > 0) && (cmd[strlen (cmd) - 1] == '\n'))
-    //     	cmd[strlen (cmd) - 1] = '\0';
-
-	//printf("%s\n", cmd);
 }
 
 int main(){
